@@ -1,0 +1,65 @@
+---
+title: "FIT Challenge"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r libraries, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(gridExtra)
+library(ggthemes)
+library(scales)
+library(zoo)
+library(knitr)
+library(kableExtra)
+library(RColorBrewer)
+library(toOrdinal)
+library(shiny)
+library(DT)
+library(rsconnect)
+library(pdftools)
+library(httr)
+
+rsconnect::setAccountInfo(name='robdaslob',
+			  token='77DFD7FDDE2622091A2CE41C3C40620B',
+			  secret='galxFmxQG+p05eH2jL11TafNmPbw7K2Wc7Zo3Egi')
+
+```
+
+
+```{r ExtractData ,include=FALSE}
+
+## Testing Reading pdf
+PdfLocation <- "C:\\Users\\riese\\FitnessChallenge\\San_Diego_Detailed_Results_Spring_2019_Challenge.pdf"
+
+Testing <- pdf_text(PdfLocation)[[5]] %>%
+  readr::read_lines()
+
+Stats <- Testing[2:24]
+
+Stats2 <- Stats %>%
+  str_squish()
+
+Stats2[c(9,13)] %>%
+  str_extract_all(pattern = "[0-9]+") %>%
+  tibble()
+
+
+  
+## Repoint this to wherever the file is saved 
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
