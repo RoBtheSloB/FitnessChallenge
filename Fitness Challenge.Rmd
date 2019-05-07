@@ -23,43 +23,124 @@ library(DT)
 library(rsconnect)
 library(pdftools)
 library(httr)
+library(RCurl)
 
 rsconnect::setAccountInfo(name='robdaslob',
 			  token='77DFD7FDDE2622091A2CE41C3C40620B',
 			  secret='galxFmxQG+p05eH2jL11TafNmPbw7K2Wc7Zo3Egi')
+
 
 ```
 
 
 ```{r ExtractData ,include=FALSE}
 
-## Testing Reading pdf
-PdfLocation <- "C:\\Users\\riese\\FitnessChallenge\\San_Diego_Detailed_Results_Spring_2019_Challenge.pdf"
+## Reading in pdf
+## Make sure you have the correct working directory
+PdfName <- "San_Diego_Detailed_Results_Spring_2019_Challenge.pdf"
 
-Testing <- pdf_text(PdfLocation)[[5]] %>%
+## Reading the fifth page (i.e. Course 1 - Level 2)
+## Should probably turn this and the following into a function since you're calling same functions in multiple spots
+## Also should try to read more than one page at a time
+## This code should definitely be improved
+RawPageFive <- pdf_text(PdfName)[[5]] %>%
   readr::read_lines()
 
-Stats <- Testing[2:24]
-
-Stats2 <- Stats %>%
+## Taking the rows that have ICW in it
+## Could make this dynamic
+Course1IcwStats <- RawPageFive[str_detect(RawPageFive ,pattern = 'ICW Group')] %>%
   str_squish()
 
-Stats2[c(9,13)] %>%
+## Team Names
+## Should probably be general in case ppl leave
+
+## Coercing data into necessary format
+## Should probably make this more dynamic rather than hardcoding names & positions of reps
+Course1Data <- Course1IcwStats %>%
   str_extract_all(pattern = "[0-9]+") %>%
-  tibble()
+  tibble(
+    EventNumber = "2019-1"
+    ,Course = "Course 1"
+    ,Level = "Level 2"
+    ,BibNumber = map_chr(. ,1) %>% as.numeric()
+    ,InvertedRows = map_chr(. ,3) %>% as.numeric()
+    ,LebertPlankHops = map_chr(. ,5) %>% as.numeric()
+    ,PushUps = map_chr(. ,7) %>% as.numeric()
+    ,KettlebellSwings = map_chr(. ,9) %>% as.numeric()
+    ,SandbagCrunchToss = map_chr(. ,11) %>% as.numeric()
+    ,Burpees = map_chr(. ,13) %>% as.numeric()
+    ,PlankHold = str_c(map_chr(. ,15) ," min " ,map_chr(. ,16) ," sec") %>% lubridate::ms()
+  ) %>%
+  select(EventNumber:PlankHold)
 
 
+## Both teams were mistakenly put on the Level 1 page for Course 2 (even though both did level 2)
+RawPageSeven <- pdf_text(PdfName)[[7]] %>%
+  readr::read_lines()
+
+## Extracting the info from Level 1 page
+Course2IcwStats <- RawPageSeven[str_detect(RawPageSeven ,pattern = 'ICW Group')] %>%
+  str_squish()
   
-## Repoint this to wherever the file is saved 
+## Getting the data into a usable format
+Course2Data <- Course2IcwStats %>%
+  str_extract_all(pattern = "[0-9]+") %>%
+  tibble(
+    EventNumber = "2019-1"
+    ,Course = "Course 2"
+    ,Level = "Level 2"
+    ,BibNumber = map_chr(. ,1) %>% as.numeric()
+    ,AgilityRelay = str_c(map_chr(. ,3) ," min " ,map_chr(. ,4) ," sec") %>% lubridate::ms()
+    ,FullBodyConditioning = str_c(map_chr(. ,6) ," min " ,map_chr(. ,7) ," sec") %>% lubridate::ms()
+    ,RopePullRelay = str_c(map_chr(. ,9) ," min " ,map_chr(. ,10) ," sec") %>% lubridate::ms()
+    ,ParachuteRelay = str_c(map_chr(. ,12) ," min " ,map_chr(. ,13) ," sec") %>% lubridate::ms()
+  ) %>%
+  select(EventNumber:ParachuteRelay)
+
+## One team did level 1 exercises, the other did level 2 for Course 3
+## Extracting level 1 first
+RawPageEleven <- pdf_text(PdfName)[[11]] %>%
+  readr::read_lines()
+
+## Extracting the info from Level 1 page
+Course3Level1IcwStats <- RawPageEleven[str_detect(RawPageEleven ,pattern = 'ICW Group')] %>%
+  str_squish()
+  
+## Getting the data into a usable format
+Course3Level1Data <- Course3Level1IcwStats %>%
+  str_extract_all(pattern = "[0-9]+") %>%
+  tibble(
+    EventNumber = "2019-1"
+    ,Course = "Course 3"
+    ,Level = "Level 1"
+    ,BibNumber = map_chr(. ,1) %>% as.numeric()
+    ,Laps = map_chr(. ,3)
+  ) %>%
+  select(EventNumber:Laps)
+
+## Doing same thing for level 2
+RawPageTwelve <- pdf_text(PdfName)[[12]] %>%
+  readr::read_lines()
+
+## Extracting the info from Level 1 page
+Course3Level2IcwStats <- RawPageTwelve[str_detect(RawPageTwelve ,pattern = 'ICW Group')] %>%
+  str_squish()
+  
+## Getting the data into a usable format
+Course3Level2Data <- Course3Level2IcwStats %>%
+  str_extract_all(pattern = "[0-9]+") %>%
+  tibble(
+    EventNumber = "2019-1"
+    ,Course = "Course 3"
+    ,Level = "Level 2"
+    ,BibNumber = map_chr(. ,1) %>% as.numeric()
+    ,Laps = map_chr(. ,3)
+  ) %>%
+  select(EventNumber:Laps)
 
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
