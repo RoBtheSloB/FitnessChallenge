@@ -53,13 +53,37 @@ Course1IcwStats <- RawPageFive[str_detect(RawPageFive ,pattern = 'ICW Group')] %
 
 ## Team Names
 ## Should probably be general in case ppl leave
+TeamName <- tibble(
+  TeamId = c(1 ,2)
+  ,EventNumber = c("2019-1" ,"2019-1")
+  ,BibNumber = c(3099 ,3100)
+  ,TeamName = c("Data Squad" ,"Team Taylor")
+)
+
+## Should probably keep record of the players too
+## Maybe can have some filter for ppl to only show the events they competed in
+PlayersTable <- tibble(
+  PlayerId = c(1:8)
+  ,TeamId = c(rep(1,4) ,rep(2,4))
+  ,EventId = c(rep(1,8))
+  ## Double check the spelling on these
+  ## Think some of them are probably off
+  ,PlayerName = c("Akshit Bhatnagar" ,"Chris Smith" ,"Eric Freiberg" ,"Monora Seth" ,"Taylor Robinson" ,"David Cunningham" ,"RoBert RiesenBerg" ,"Kaleb Hite")
+)
+
+## Just adding in first / last name columns
+## Can probably just use these if ppl don't have same names
+PlayersTable %>%
+  mutate(FirstName = str_trim(str_extract(PlayerName ,pattern = ".* "))
+         ,LastName = str_trim(str_extract(PlayerName ,pattern = " .*$")))
 
 ## Coercing data into necessary format
 ## Should probably make this more dynamic rather than hardcoding names & positions of reps
 Course1Data <- Course1IcwStats %>%
   str_extract_all(pattern = "[0-9]+") %>%
   tibble(
-    EventNumber = "2019-1"
+    EventId = 1
+    ,EventNumber = "2019-1"
     ,Course = "Course 1"
     ,Level = "Level 2"
     ,BibNumber = map_chr(. ,1) %>% as.numeric()
@@ -71,7 +95,7 @@ Course1Data <- Course1IcwStats %>%
     ,Burpees = map_chr(. ,13) %>% as.numeric()
     ,PlankHold = str_c(map_chr(. ,15) ," min " ,map_chr(. ,16) ," sec") %>% lubridate::ms()
   ) %>%
-  select(EventNumber:PlankHold)
+  select(EventId:PlankHold)
 
 
 ## Both teams were mistakenly put on the Level 1 page for Course 2 (even though both did level 2)
@@ -86,7 +110,8 @@ Course2IcwStats <- RawPageSeven[str_detect(RawPageSeven ,pattern = 'ICW Group')]
 Course2Data <- Course2IcwStats %>%
   str_extract_all(pattern = "[0-9]+") %>%
   tibble(
-    EventNumber = "2019-1"
+    EventId = 1
+    ,EventNumber = "2019-1"
     ,Course = "Course 2"
     ,Level = "Level 2"
     ,BibNumber = map_chr(. ,1) %>% as.numeric()
@@ -95,7 +120,7 @@ Course2Data <- Course2IcwStats %>%
     ,RopePullRelay = str_c(map_chr(. ,9) ," min " ,map_chr(. ,10) ," sec") %>% lubridate::ms()
     ,ParachuteRelay = str_c(map_chr(. ,12) ," min " ,map_chr(. ,13) ," sec") %>% lubridate::ms()
   ) %>%
-  select(EventNumber:ParachuteRelay)
+  select(EventId:ParachuteRelay)
 
 ## One team did level 1 exercises, the other did level 2 for Course 3
 ## Extracting level 1 first
@@ -110,13 +135,14 @@ Course3Level1IcwStats <- RawPageEleven[str_detect(RawPageEleven ,pattern = 'ICW 
 Course3Level1Data <- Course3Level1IcwStats %>%
   str_extract_all(pattern = "[0-9]+") %>%
   tibble(
-    EventNumber = "2019-1"
+    EventId = 1
+    ,EventNumber = "2019-1"
     ,Course = "Course 3"
     ,Level = "Level 1"
     ,BibNumber = map_chr(. ,1) %>% as.numeric()
     ,Laps = map_chr(. ,3)
   ) %>%
-  select(EventNumber:Laps)
+  select(EventId:Laps)
 
 ## Doing same thing for level 2
 RawPageTwelve <- pdf_text(PdfName)[[12]] %>%
@@ -130,13 +156,14 @@ Course3Level2IcwStats <- RawPageTwelve[str_detect(RawPageTwelve ,pattern = 'ICW 
 Course3Level2Data <- Course3Level2IcwStats %>%
   str_extract_all(pattern = "[0-9]+") %>%
   tibble(
-    EventNumber = "2019-1"
+    EventId = 1
+    ,EventNumber = "2019-1"
     ,Course = "Course 3"
     ,Level = "Level 2"
     ,BibNumber = map_chr(. ,1) %>% as.numeric()
     ,Laps = map_chr(. ,3)
   ) %>%
-  select(EventNumber:Laps)
+  select(EventId:Laps)
 
 ```
 
