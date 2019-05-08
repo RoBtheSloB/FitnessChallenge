@@ -165,9 +165,78 @@ Course3Level2Data <- Course3Level2IcwStats %>%
   ) %>%
   select(EventId:Laps)
 
+## Getting the data into a standard format
+Course1Reps <- Course1Data %>%
+  select(EventId:Burpees) %>%
+  gather(key = "Exercise" ,value = "Reps" ,InvertedRows:Burpees)
+Course1Timed <- Course1Data %>%
+  select(EventId:BibNumber ,PlankHold) %>%
+  gather(key = "Exercise" ,value = "Time" ,PlankHold) %>%
+  mutate(Time = as.character(Time))
+Course2Timed <- Course2Data %>%
+  mutate_if(lubridate::is.period ,as.character) %>%
+  gather(key = "Exercise" ,value = "Time" ,AgilityRelay:ParachuteRelay) 
+Course3Level1Reps <- Course3Level1Data %>%
+  gather(key = "Exercise" ,value = "Reps" ,Laps) %>%
+  mutate(Reps = as.numeric(Reps))
+Course3Level2Reps <- Course3Level2Data %>%
+  gather(key = "Exercise" ,value = "Reps" ,Laps) %>%
+  mutate(Reps = as.numeric(Reps))
+
+## Bind the Reps & Timed datasets together
+CourseReps <- bind_rows(Course1Reps ,Course3Level1Reps ,Course3Level2Reps)
+CourseTimed <- bind_rows(Course1Timed ,Course2Timed)
+
+## Filtering to just the two teams that did level 2 stuff 
+## More teams can be extracted and added
+## I just don't know the Bibnumber to participant mapping for level 1 teams
+CourseReps <- CourseReps %>%
+  inner_join(TeamName ,by = c("EventNumber" ,"BibNumber"))
+CourseTimed <- CourseTimed %>%
+  inner_join(TeamName ,by = c("EventNumber" ,"BibNumber"))
+
+## Converting time back to periods from character
+CourseTimed <- CourseTimed %>%
+  mutate(Time = lubridate::period(Time))
+
+
+
+```
+
+
+FIT Performance
+=======================================================================
+
+Column {data-width=200 .sidebar}
+-----------------------------------------------------------------------
+```{r}
+
+selectInput("TeamInput"
+            ,"Select a team:"
+            ,choices = TeamName$TeamName
+            ,selected = TeamName$TeamName[1])
+
 ```
 
 
 
+Column {data-width=450}
+-----------------------------------------------------------------------
+
+### Current Plus Minus
+
+```{r}
+
+ReactivePlusMinusData <- reactive({
+  PlusMinusData %>%
+    filter(Player == input$TeamInput)
+})
+
+renderValueBox(
+  valueBox(ReactivePlusMinusData() %>% select(PlusMinus)
+           ,icon = "fa-arrows-v"
+           ,color = ifelse(ReactivePlusMinusData() %>% select(PlusMinus) > 5, "success", ifelse(ReactivePlusMinusData() %>% select(PlusMinus) > -6 ,"warning" ,"danger")))
+)
 
 
+```
