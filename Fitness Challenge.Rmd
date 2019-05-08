@@ -199,6 +199,29 @@ CourseTimed <- CourseTimed %>%
 CourseTimed <- CourseTimed %>%
   mutate(Time = lubridate::period(Time))
 
+## High Rep Exercises
+HighRepExercises <- c("LebertPlankHops" ,"PushUps" ,"KettlebellSwings" ,"SandbagCrunchToss")
+
+## Lower Rep Exercises 
+LowRepExercises <- c("InvertedRows" ,"Burpees")
+
+## Running Exercises
+RunningExercises <- c("Laps")
+
+## Getting the max ranges for the charts
+MaxHighRep <- CourseReps %>%
+  filter(Exercise %in% HighRepExercises) %>%
+  summarise(MaxReps = max(Reps)) %>%
+  as.numeric()
+MaxLowRep <- CourseReps %>%
+  filter(Exercise %in% LowRepExercises) %>%
+  summarise(MaxReps = max(Reps)) %>%
+  as.numeric()
+
+## Making Course a factor
+CourseReps$Course <- factor(CourseReps$Course ,levels = c("Course 1" ,"Course 2" ,"Course 3"))
+  
+
 
 
 ```
@@ -223,20 +246,92 @@ selectInput("TeamInput"
 Column {data-width=450}
 -----------------------------------------------------------------------
 
-### Current Plus Minus
+### High Rep Exercises
 
 ```{r}
 
-ReactivePlusMinusData <- reactive({
-  PlusMinusData %>%
-    filter(Player == input$TeamInput)
+ReactiveCourseHighReps <- reactive({
+  CourseReps %>%
+    filter(TeamName == input$TeamInput & Exercise %in% HighRepExercises)
 })
 
-renderValueBox(
-  valueBox(ReactivePlusMinusData() %>% select(PlusMinus)
-           ,icon = "fa-arrows-v"
-           ,color = ifelse(ReactivePlusMinusData() %>% select(PlusMinus) > 5, "success", ifelse(ReactivePlusMinusData() %>% select(PlusMinus) > -6 ,"warning" ,"danger")))
-)
+renderPlot({
+  ggplot(ReactiveCourseHighReps() ,aes(x = as.factor(EventId) ,y = Reps ,fill = Course)) +
+    geom_col() +
+    facet_wrap(~ Exercise) +
+    # scale_x_continuous(breaks = pretty_breaks()) +
+    scale_y_continuous(limits = c(0 ,MaxHighRep + 10) ,breaks = seq(0 ,MaxHighRep + 10 ,by = 20)) +
+    # ggtitle("Points by Player") +
+    # theme(plot.title = element_text(hjust = 0.5)) +
+    labs(x = "Event Number") +
+    # scale_fill_gradientn(colors = c("darkred", "tomato1","palegreen", "darkgreen") ,limit = c(MinTeammatePlusMinus ,MaxTeammatePlusMinus)) +    
+    scale_fill_manual(values = c("Course 1" = brewer.pal(3 ,"Set1")[1]
+                                 ,"Course 2" = brewer.pal(3 ,"Set1")[2]
+                                 ,"Course 3" = brewer.pal(3 ,"Set1")[3])) +
+    theme_fivethirtyeight()      
+})
+
+
+
+```
+
+
+### Low Rep Exercises
+
+```{r}
+
+ReactiveCourseLowReps <- reactive({
+  CourseReps %>%
+    filter(TeamName == input$TeamInput & Exercise %in% LowRepExercises)
+})
+
+renderPlot({
+  ggplot(ReactiveCourseLowReps() ,aes(x = as.factor(EventId) ,y = Reps ,fill = Course)) +
+    geom_col() +
+    facet_wrap(~ Exercise) +
+    # scale_x_continuous(breaks = pretty_breaks()) +
+    scale_y_continuous(limits = c(0 ,MaxLowRep + 10) ,breaks = seq(0 ,MaxHighRep + 10 ,by = 15)) +
+    # ggtitle("Points by Player") +
+    # theme(plot.title = element_text(hjust = 0.5)) +
+    labs(x = "Event Number") +
+    # scale_fill_gradientn(colors = c("darkred", "tomato1","palegreen", "darkgreen") ,limit = c(MinTeammatePlusMinus ,MaxTeammatePlusMinus)) +    
+    scale_fill_manual(values = c("Course 1" = brewer.pal(3 ,"Set1")[1]
+                                 ,"Course 2" = brewer.pal(3 ,"Set1")[2]
+                                 ,"Course 3" = brewer.pal(3 ,"Set1")[3])) +
+    theme_fivethirtyeight()      
+})
+
+
+
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Course 3 Running
+
+```{r}
+
+ReactiveCourseRunning <- reactive({
+  CourseReps %>%
+    filter(TeamName == input$TeamInput & Exercise %in% RunningExercises)
+})
+
+renderPlot({
+  ggplot(ReactiveCourseRunning() ,aes(x = as.factor(EventId) ,y = Reps ,fill = Course)) +
+    geom_col() +
+    facet_wrap(~ Exercise) +
+    # scale_x_continuous(breaks = pretty_breaks()) +
+    # scale_y_continuous(limits = c(0 ,MaxHighRep + 10) ,breaks = seq(0 ,MaxHighRep + 10 ,by = 20)) +
+    # ggtitle("Points by Player") +
+    # theme(plot.title = element_text(hjust = 0.5)) +
+    labs(x = "Event Number") +
+    # scale_fill_gradientn(colors = c("darkred", "tomato1","palegreen", "darkgreen") ,limit = c(MinTeammatePlusMinus ,MaxTeammatePlusMinus)) +    
+    scale_fill_manual(values = c("Course 1" = brewer.pal(3 ,"Set1")[1]
+                                 ,"Course 2" = brewer.pal(3 ,"Set1")[2]
+                                 ,"Course 3" = brewer.pal(3 ,"Set1")[3])) +
+    theme_fivethirtyeight()      
+})
 
 
 ```
