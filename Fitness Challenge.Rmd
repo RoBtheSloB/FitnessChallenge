@@ -36,6 +36,8 @@ rsconnect::setAccountInfo(name='robdaslob',
 ```{r ExtractData ,include=FALSE}
 
 ## Reading in pdf
+## Honestly, this section would be much faster if you copied directly from pdf to a file and read that file in
+## Just want to get experience working with pdf's
 ## Make sure you have the correct working directory
 PdfName <- "San_Diego_Detailed_Results_Spring_2019_Challenge.pdf"
 
@@ -175,7 +177,7 @@ Course1Timed <- Course1Data %>%
   mutate(Time = as.character(Time))
 Course2Timed <- Course2Data %>%
   mutate_if(lubridate::is.period ,as.character) %>%
-  gather(key = "Exercise" ,value = "Time" ,AgilityRelay:ParachuteRelay) 
+  gather(key = "Exercise" ,value = "Time" ,AgilityRelay:ParachuteRelay)
 Course3Level1Reps <- Course3Level1Data %>%
   gather(key = "Exercise" ,value = "Reps" ,Laps) %>%
   mutate(Reps = as.numeric(Reps))
@@ -197,13 +199,20 @@ CourseTimed <- CourseTimed %>%
 
 ## Converting time back to periods from character
 CourseTimed <- CourseTimed %>%
-  mutate(Time = lubridate::period(Time))
+  mutate(Time = lubridate::period(Time)
+         ,TimeInSeconds = lubridate::period_to_seconds(Time))
 
 ## High Rep Exercises
 HighRepExercises <- c("LebertPlankHops" ,"PushUps" ,"KettlebellSwings" ,"SandbagCrunchToss")
 
 ## Lower Rep Exercises 
 LowRepExercises <- c("InvertedRows" ,"Burpees")
+
+## Faster Exercises
+FasterExercises <- c("AgilityRelay" ,"FullBodyConditioning" ,"RopePullRelay" ,"ParachuteRelay")
+
+## Slower Exercises
+SlowerExercises <- c("PlankHold")
 
 ## Running Exercises
 RunningExercises <- c("Laps")
@@ -217,11 +226,6 @@ MaxLowRep <- CourseReps %>%
   filter(Exercise %in% LowRepExercises) %>%
   summarise(MaxReps = max(Reps)) %>%
   as.numeric()
-
-## Making Course a factor
-CourseReps$Course <- factor(CourseReps$Course ,levels = c("Course 1" ,"Course 2" ,"Course 3"))
-  
-
 
 
 ```
@@ -243,10 +247,10 @@ selectInput("TeamInput"
 
 
 
-Column {data-width=450}
+Column {data-width=450 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-### High Rep Exercises
+### High Rep Exercises 
 
 ```{r}
 
@@ -305,10 +309,38 @@ renderPlot({
 
 ```
 
-Column {data-width=350}
------------------------------------------------------------------------
 
-### Course 3 Running
+### Timed Exercises
+
+```{r}
+
+ReactiveCourseTimed <- reactive({
+  CourseTimed %>%
+    filter(TeamName == input$TeamInput & Exercise != 'PlankHold')
+})
+
+renderPlot({
+  ggplot(ReactiveCourseTimed() ,aes(x = as.factor(EventId) ,y = TimeInSeconds ,fill = Course)) +
+    geom_col() +
+    facet_wrap(~ Exercise) +
+    # scale_x_continuous(breaks = pretty_breaks()) +
+    # scale_y_continuous(limits = c(0 ,MaxLowRep + 10) ,breaks = seq(0 ,MaxHighRep + 10 ,by = 15)) +
+    # ggtitle("Points by Player") +
+    # theme(plot.title = element_text(hjust = 0.5)) +
+    labs(x = "Event Number") +
+    # scale_fill_gradientn(colors = c("darkred", "tomato1","palegreen", "darkgreen") ,limit = c(MinTeammatePlusMinus ,MaxTeammatePlusMinus)) +    
+    scale_fill_manual(values = c("Course 1" = brewer.pal(3 ,"Set1")[1]
+                                 ,"Course 2" = brewer.pal(3 ,"Set1")[2]
+                                 ,"Course 3" = brewer.pal(3 ,"Set1")[3])) +
+    theme_fivethirtyeight()      
+})
+
+
+
+```
+
+
+### Course 3 - Laps
 
 ```{r}
 
@@ -335,3 +367,8 @@ renderPlot({
 
 
 ```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+
