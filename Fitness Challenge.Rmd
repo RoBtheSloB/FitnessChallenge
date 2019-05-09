@@ -24,6 +24,7 @@ library(rsconnect)
 library(pdftools)
 library(httr)
 library(RCurl)
+library(lubridate)
 
 rsconnect::setAccountInfo(name='robdaslob',
 			  token='77DFD7FDDE2622091A2CE41C3C40620B',
@@ -60,6 +61,13 @@ TeamName <- tibble(
   ,EventNumber = c("2019-1" ,"2019-1")
   ,BibNumber = c(3099 ,3100)
   ,TeamName = c("Data Squad" ,"Team Taylor")
+)
+
+## Exercise Number
+## Just used for ordering purposes
+ExerciseTable <- tibble(
+  ExerciseId = c(1:12)
+  ,Exercise = c("InvertedRows" ,"LebertPlankHops" ,"PushUps" ,"KettlebellSwings" ,"SandbagCrunchToss" ,"Burpees" ,"PlankHold" ,"AgilityRelay" ,"FullBodyConditioning" ,"RopePullRelay" ,"ParachuteRelay" ,"Laps")
 )
 
 ## Should probably keep record of the players too
@@ -226,6 +234,38 @@ MaxLowRep <- CourseReps %>%
   filter(Exercise %in% LowRepExercises) %>%
   summarise(MaxReps = max(Reps)) %>%
   as.numeric()
+MaxTimeInSeconds <- CourseTimed %>%
+  select(-Time) %>%
+  filter(Exercise != 'PlankHold') %>%
+  summarise(MaxTime = max(TimeInSeconds)) %>%
+  as.numeric()
+MaxLaps <- CourseReps %>%
+  filter(Exercise %in% RunningExercises) %>%
+  summarise(MaxReps = max(Reps)) %>%
+  as.numeric()
+
+## Getting data for the best performance table
+## Need to convert to character so that the minutes seconds format can be used
+BestCourseTimed <- CourseTimed %>%
+  group_by(TeamName ,Exercise) %>%
+  summarise(BestPerformance = min(TimeInSeconds)) %>%
+  ungroup() %>%
+  right_join(CourseTimed %>% mutate(Time = as.character(Time)) ,by = c("TeamName" ,"Exercise")) %>%
+  select(TeamName:Exercise ,Course ,Time) %>%
+  rename(BestPerformance = Time)
+BestCourseReps <- CourseReps %>%
+  group_by(TeamName ,Exercise) %>%
+  summarise(BestPerformance = max(Reps)) %>%
+  ungroup() %>%
+  right_join(CourseReps %>% mutate(Reps = as.character(Reps)) ,by = c("TeamName" ,"Exercise")) %>%
+  select(TeamName:Exercise ,Course ,Reps) %>%
+  rename(BestPerformance = Reps)
+BestPerformance <- bind_rows(BestCourseTimed ,BestCourseReps)
+
+## Getting Exercise order onto this df
+BestPerformance <- BestPerformance %>%
+  left_join(ExerciseTable ,by = "Exercise") %>%
+  select(TeamName ,ExerciseId ,Exercise ,Course ,BestPerformance) 
 
 
 ```
@@ -310,12 +350,44 @@ renderPlot({
 ```
 
 
+### PlankHold
+
+```{r}
+
+ReactivePlankHold <- reactive({
+  CourseTimed %>%
+    select(-Time) %>%
+    filter(TeamName == input$TeamInput & Exercise == 'PlankHold')
+})
+
+renderPlot({
+  ggplot(ReactivePlankHold() ,aes(x = as.factor(EventId) ,y = TimeInSeconds ,fill = Course)) +
+    geom_col() +
+    facet_wrap(~ Exercise) +
+    geom_hline(yintercept = 480) +
+    # scale_x_continuous(breaks = pretty_breaks()) +
+    scale_y_continuous(limits = c(0 ,480) ,breaks = seq(0 ,480 ,by = 120) ,labels = c("00:00:00", "02:00:00", "04:00:00", "06:00:00", "08:00:00")) +
+    # ggtitle("Points by Player") +
+    # theme(plot.title = element_text(hjust = 0.5)) +
+    labs(x = "Event Number") +
+    # scale_fill_gradientn(colors = c("darkred", "tomato1","palegreen", "darkgreen") ,limit = c(MinTeammatePlusMinus ,MaxTeammatePlusMinus)) +    
+    scale_fill_manual(values = c("Course 1" = brewer.pal(3 ,"Set1")[1]
+                                 ,"Course 2" = brewer.pal(3 ,"Set1")[2]
+                                 ,"Course 3" = brewer.pal(3 ,"Set1")[3])) +
+    theme_fivethirtyeight()    
+})
+
+
+```
+
+
 ### Timed Exercises
 
 ```{r}
 
 ReactiveCourseTimed <- reactive({
   CourseTimed %>%
+    select(-Time) %>%
     filter(TeamName == input$TeamInput & Exercise != 'PlankHold')
 })
 
@@ -324,7 +396,7 @@ renderPlot({
     geom_col() +
     facet_wrap(~ Exercise) +
     # scale_x_continuous(breaks = pretty_breaks()) +
-    # scale_y_continuous(limits = c(0 ,MaxLowRep + 10) ,breaks = seq(0 ,MaxHighRep + 10 ,by = 15)) +
+    scale_y_continuous(limits = c(0 ,100) ,breaks = seq(0 ,100 ,by = 20) ,labels = c("00:00:00", "00:20:00", "00:40:00", "01:00:00", "01:20:00" , "01:40:00")) +
     # ggtitle("Points by Player") +
     # theme(plot.title = element_text(hjust = 0.5)) +
     labs(x = "Event Number") +
@@ -332,15 +404,14 @@ renderPlot({
     scale_fill_manual(values = c("Course 1" = brewer.pal(3 ,"Set1")[1]
                                  ,"Course 2" = brewer.pal(3 ,"Set1")[2]
                                  ,"Course 3" = brewer.pal(3 ,"Set1")[3])) +
-    theme_fivethirtyeight()      
+    theme_fivethirtyeight()    
 })
-
 
 
 ```
 
 
-### Course 3 - Laps
+### Laps
 
 ```{r}
 
@@ -352,9 +423,9 @@ ReactiveCourseRunning <- reactive({
 renderPlot({
   ggplot(ReactiveCourseRunning() ,aes(x = as.factor(EventId) ,y = Reps ,fill = Course)) +
     geom_col() +
-    facet_wrap(~ Exercise) +
+    facet_wrap(~ Level) +
     # scale_x_continuous(breaks = pretty_breaks()) +
-    # scale_y_continuous(limits = c(0 ,MaxHighRep + 10) ,breaks = seq(0 ,MaxHighRep + 10 ,by = 20)) +
+    scale_y_continuous(limits = c(0 ,MaxLaps + 5)) +
     # ggtitle("Points by Player") +
     # theme(plot.title = element_text(hjust = 0.5)) +
     labs(x = "Event Number") +
@@ -370,5 +441,23 @@ renderPlot({
 
 Column {data-width=350}
 -----------------------------------------------------------------------
+
+### Best Performance by Exercise
+
+```{r}
+ReactiveBestPerformance <- reactive({
+  BestPerformance %>%
+    filter(TeamName == input$TeamInput) %>%
+    select(ExerciseId ,Course ,Exercise ,BestPerformance) %>%
+    arrange(ExerciseId)
+})
+
+DT::renderDataTable({
+  DT::datatable(ReactiveBestPerformance() ,rownames = FALSE ,options = list(
+    bPaginate = FALSE
+  ))
+})
+
+```
 
 
